@@ -58,3 +58,11 @@ class TaskOut(BaseModel):
 @app.get("/health")
 def health(db: Session = Depends(get_db)):
     return {"ok": True}
+
+@app.post("/tasks", response_model=TaskOut, status_code=201)
+def create_task(payload: TaskCreate, db: Session = Depends(get_db)):
+    task = Task(title=payload.title)
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+    return task
