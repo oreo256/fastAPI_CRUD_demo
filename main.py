@@ -69,8 +69,8 @@ def health(db: Session = Depends(get_db)):
 
 
 @app.post("/tasks", response_model=TaskOut, status_code=201)
-def create_task(payload: TaskCreate, db: Session = Depends(get_db)):
-    task = Task(title=payload.title)
+def create_task(body: TaskCreate, db: Session = Depends(get_db)):
+    task = Task(title=body.title)
     db.add(task)
     db.commit()
     db.refresh(task)
@@ -94,4 +94,19 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
     task = db.get(Task, task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+@app.patch("/tasks/{task_id}", response_model=TaskOut)
+def update_task(task_id: int, body: TaskUpdate, db: Session = Depends(get_db)):
+    task = db.get(Task, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if body.title is not None:
+        task.title = body.title
+    if body.completed is not None:
+        task.completed = body.completed
+
+    db.commit()
+    db.refresh(task)
     return task
