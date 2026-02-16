@@ -1,8 +1,9 @@
 from fastapi import FastAPI,Depends
 from sqlalchemy import create_engine, String, Boolean, DateTime
 from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column
-from typing import Generator
+from typing import Generator, Optional
 from datetime import datetime, timezone
+from pydantic import BaseModel, Field
 
 DATABASE_URL = "sqlite:///./app.db"
 
@@ -37,6 +38,22 @@ def get_db() -> Generator[Session,None, None]:
         db.close()
 
 app = FastAPI(title="FastAPI CRUD - Tasks")
+
+class TaskCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+
+class TaskUpdate(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    completed: Optional[bool] = None
+
+class TaskOut(BaseModel):
+    id: int
+    title: str
+    completed: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 @app.get("/health")
 def health(db: Session = Depends(get_db)):
