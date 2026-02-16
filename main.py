@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Depends, Query
-from sqlalchemy import create_engine, String, Boolean, DateTime
+from fastapi import FastAPI, Depends, Query, HTTPException
+from sqlalchemy import create_engine, String, Boolean, DateTime, select
 from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column
 from typing import Generator, Optional, List
 from datetime import datetime, timezone
@@ -82,5 +82,16 @@ def list_tasks(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ):
-    tasks = db.query(Task).order_by(Task.id.desc()).offset(offset).limit(limit).all()
+    # これは古い書き方。通るけど、新しく勉強するならstmtの方が良い
+    # tasks = db.query(Task).order_by(Task.id.desc()).offset(offset).limit(limit).all()
+    # stmtはstatementの略
+    stmt = (select(Task).order_by(Task.id.desc()).offset(offset).limit(limit))
+    tasks = db.execute(stmt).scalar().all()
     return tasks
+
+@app.get("/tasks/{task_id}", response_model=TaskOut)
+def get_task(task_id: int, db: Session = Depends(get_db)):
+    task = db.get(Task, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
