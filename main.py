@@ -62,12 +62,6 @@ class TaskOut(BaseModel):
     class Config:
         from_attributes = True
 
-
-@app.get("/health")
-def health(db: Session = Depends(get_db)):
-    return {"ok": True}
-
-
 @app.post("/tasks", response_model=TaskOut, status_code=201)
 def create_task(body: TaskCreate, db: Session = Depends(get_db)):
     task = Task(title=body.title)
@@ -86,7 +80,7 @@ def list_tasks(
     # tasks = db.query(Task).order_by(Task.id.desc()).offset(offset).limit(limit).all()
     # stmtはstatementの略
     stmt = (select(Task).order_by(Task.id.desc()).offset(offset).limit(limit))
-    tasks = db.execute(stmt).scalar().all()
+    tasks = db.execute(stmt).scalars().all()
     return tasks
 
 @app.get("/tasks/{task_id}", response_model=TaskOut)
@@ -110,3 +104,12 @@ def update_task(task_id: int, body: TaskUpdate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(task)
     return task
+
+@app.delete("/task/{task_id}", status_code=204)
+def delete_task(task_id: int, db: Session = Depends(get_db)):
+    task = db.get(Task, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    db.delete(task)
+    db.commit()
+    return None
